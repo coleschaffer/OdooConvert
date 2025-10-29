@@ -1,0 +1,22 @@
+{
+  "name": "csv-to-odoo-converter",
+  "version": "2.0.0",
+  "description": "CSV to Odoo Product Converter - Intelligent merging with conflict resolution",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "odoo",
+    "csv",
+    "converter",
+    "shopify",
+    "cin7",
+    "zoho"
+  ],
+  "author": "cosch-dev",
+  "license": "MIT"
+}

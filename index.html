@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to Odoo Product Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 CSV to Odoo Product Converter</h1>
+            <p class="subtitle">Convert Shopify, Cin7, and Zoho product exports to Odoo import format</p>
+        </header>
+
+        <main>
+            <!-- Step 1: File Upload -->
+            <section class="card" id="upload-section">
+                <h2>Step 1: Upload Your CSV Files</h2>
+                <div class="upload-info">
+                    <p><strong>📊 Upload 2-3 CSV files from your e-commerce systems</strong></p>
+                    <p>The app will intelligently merge them into one master dataset for Odoo import.</p>
+                </div>
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📁</div>
+                    <p>Drag & drop multiple CSV files (Shopify, Cin7, Zoho)</p>
+                    <input type="file" id="file-input" accept=".csv" multiple hidden>
+                    <button class="btn btn-primary">
+                        Choose Multiple Files
+                    </button>
+                </div>
+                <div id="files-info" class="files-info hidden">
+                    <div id="files-list"></div>
+                    <button class="btn btn-secondary btn-sm" onclick="clearFile()">Clear All</button>
+                </div>
+            </section>
+
+            <!-- Step 2: Files Detected -->
+            <section class="card hidden" id="detection-section">
+                <h2>Step 2: Review Source Files</h2>
+                <div class="merge-info">
+                    <p><strong>📋 Files detected and ready to merge</strong> - Products will be matched by SKU/Product Code</p>
+                </div>
+                <div id="systems-detected-list"></div>
+                <div class="file-preview">
+                    <h3>Combined Data Preview (first 5 rows from each file)</h3>
+                    <div class="preview-container" id="preview-container"></div>
+                    <div class="preview-stats">
+                        <span id="row-count"></span>
+                        <span id="column-count"></span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="startMerge()">
+                    🚀 Start Intelligent Merge
+                </button>
+            </section>
+
+            <!-- Step 3: Merge Results & Validation -->
+            <section class="card hidden" id="merge-section">
+                <h2>Step 3: Merge Results & Validation</h2>
+
+                <div class="merge-summary">
+                    <div class="summary-card success">
+                        <h3>✓ Successfully Merged</h3>
+                        <div class="stat-large" id="merge-total">0</div>
+                        <p>Unique products created</p>
+                    </div>
+                    <div class="summary-card info">
+                        <h3>🔗 Matched Products</h3>
+                        <div class="stat-large" id="merge-matched">0</div>
+                        <p>Products found in multiple sources</p>
+                    </div>
+                    <div class="summary-card warning">
+                        <h3>⚠️ Conflicts Detected</h3>
+                        <div class="stat-large" id="merge-conflicts">0</div>
+                        <p>Fields with different values</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>📊 Data Completeness</h3>
+                        <div class="stat-large" id="merge-completeness">0%</div>
+                        <p>Average field completeness</p>
+                    </div>
+                </div>
+
+                <div class="merge-rules">
+                    <h3>🎯 Merge Rules Applied</h3>
+                    <ul>
+                        <li><strong>SKU Matching:</strong> Products matched by SKU/Product Code across all sources</li>
+                        <li><strong>Non-empty Priority:</strong> Prefer fields with data over empty fields</li>
+                        <li><strong>Source Priority:</strong> Shopify (SEO, images) → Cin7 (costs, specs) → Zoho (accounting)</li>
+                        <li><strong>Conflict Detection:</strong> Same field, different values = flagged for review</li>
+                    </ul>
+                </div>
+
+                <div id="conflicts-section" class="hidden">
+                    <h3>⚠️ Resolve Conflicts</h3>
+                    <p>Select which source to use for each conflicting field. Your choice will be applied to all SKUs with that field conflict.</p>
+                    <div id="conflicts-table-container"></div>
+                </div>
+
+                <div class="validation-results">
+                    <h3>✓ Validation Results</h3>
+                    <div id="validation-issues"></div>
+                </div>
+
+                <button class="btn btn-success btn-lg" onclick="proceedToConversion()">
+                    Continue to Conversion →
+                </button>
+            </section>
+
+            <!-- Field Mapping (Hidden - Auto-mapped from conflicts) -->
+            <section class="card hidden" id="mapping-section">
+                <h2>Field Mapping (Auto-configured)</h2>
+                <div class="mapping-info">
+                    <p>The following fields will be mapped to Odoo format. You can customize the mapping if needed.</p>
+                </div>
+                <div class="template-selector">
+                    <label for="template-select">Odoo Template:</label>
+                    <select id="template-select" class="form-select">
+                        <option value="standard">Standard (20 fields) - Recommended</option>
+                        <option value="minimal">Minimal (10 fields) - Basic import</option>
+                        <option value="ecommerce">E-Commerce (26 fields) - Full featured</option>
+                        <option value="custom">Custom - Select fields manually</option>
+                    </select>
+                </div>
+                <div class="mapping-table-container">
+                    <table class="mapping-table" id="mapping-table">
+                        <thead>
+                            <tr>
+                                <th>Odoo Field</th>
+                                <th>Source Field</th>
+                                <th>Sample Value</th>
+                                <th>Include</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mapping-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Step 4: Conversion Options -->
+            <section class="card hidden" id="options-section">
+                <h2>Step 4: Conversion Options</h2>
+                <div class="options-grid">
+                    <div class="option-group">
+                        <h3>Variant Handling</h3>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="merge-variants" checked>
+                            <span>Merge variants into product template rows</span>
+                        </label>
+                        <p class="option-description">Recommended: Groups all variants under parent product</p>
+                    </div>
+                    <div class="option-group">
+                        <h3>Data Cleaning</h3>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="clean-html" checked>
+                            <span>Clean HTML in descriptions</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="normalize-prices" checked>
+                            <span>Remove currency symbols from prices</span>
+                        </label>
+                    </div>
+                    <div class="option-group">
+                        <h3>Default Values</h3>
+                        <label class="form-label">
+                            Product Type:
+                            <select id="default-type" class="form-select">
+                                <option value="Goods">Goods</option>
+                                <option value="Service">Service</option>
+                                <option value="Combo">Combo</option>
+                            </select>
+                        </label>
+                        <label class="form-label">
+                            Category:
+                            <select id="default-category" class="form-select">
+                                <option value="Goods">Goods</option>
+                                <option value="Services">Services</option>
+                                <option value="Deliveries">Deliveries</option>
+                                <option value="Expenses">Expenses</option>
+                                <option value="Food">Food</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 5: Convert & Download -->
+            <section class="card hidden" id="convert-section">
+                <h2>Step 5: Convert & Download</h2>
+                <div class="convert-container">
+                    <div class="conversion-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">Products to convert:</span>
+                            <span class="summary-value" id="product-count">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Odoo fields:</span>
+                            <span class="summary-value" id="field-count">0</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-lg" id="convert-btn" onclick="convertToOdoo()">
+                        🚀 Convert to Odoo Format
+                    </button>
+                    <div id="conversion-result" class="conversion-result hidden">
+                        <div class="success-message">
+                            ✅ Conversion successful!
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="download-btn">
+                            ⬇️ Download Odoo CSV
+                        </button>
+                        <div class="result-preview">
+                            <h3>Preview of Odoo CSV (first 3 rows)</h3>
+                            <div id="result-preview-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Built for converting e-commerce product exports to Odoo import format</p>
+            <p class="version">v2.0.0 - Intelligent merging with conflict resolution</p>
+        </footer>
+    </div>
+
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
